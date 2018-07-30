@@ -1,0 +1,6 @@
+python nhentai.py -m -d D:\Desktop\NEWMEDIA\Tools\Python\Finished\Python_nhentai -u https://nhentai.net/g/238491
+python nhentai.py -t -d D:\Desktop\NEWMEDIA\Tools\Python\Finished\Python_nhentai -u https://nhentai.net/search/?q=loli+blowjob
+python nhentai.py -t -d D:\Desktop\NEWMEDIA\Tools\Python\Finished\Python_nhentai -u https://nhentai.net/tag/anal-birth
+python nhentai.py -t -d D:\Desktop\NEWMEDIA\Tools\Python\Finished\Python_nhentai -u https://nhentai.net/artist/minazuki-juuzou/
+
+Last Tested 5.7.2018 (Day, Month, Year)
