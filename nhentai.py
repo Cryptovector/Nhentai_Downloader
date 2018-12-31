@@ -2,7 +2,18 @@ import shutil
 import requests
 import os
 import argparse
+import threading
 from lxml import html
+
+threadcount = 0
+Maxthread = 30
+lock = threading.Lock()
+threadready = threading.Event()
+
+def Wait_for_threads():
+	while threadcount: #thread.join() is to slow 
+		threadready.wait()
+		threadready.clear()
 
 def Download_Single_File(path, url):
 	response = requests.get(url, stream=True)
@@ -15,6 +26,14 @@ def Download_Single_File(path, url):
 		return 0
 
 def Download_prefix(Init, path ,url):
+	global threadready
+	global threadcount 
+	global lock
+
+	lock.acquire()
+	threadcount += 1
+	lock.release()
+
 	Index = Init
 	Prefixe = [".png",".jpg"]
 
@@ -36,6 +55,11 @@ def Download_prefix(Init, path ,url):
 		if not Exist:
 			break
 		Index += 1
+
+	lock.acquire()
+	threadcount -= 1
+	lock.release()
+	threadready.set() #Ready signal	
 
 def Extract_Hentai_Index(tree):
 	raw_html = tree.xpath('//*[@id="thumbnail-container"]/div[1]/a/img')
@@ -66,7 +90,13 @@ def Download_Hentai_Chapter(path, url):
 	   		os.makedirs(Newpath)
 		print("Name: ", Name)    #Commandline Output
 		print("Path: ", Newpath) #Commandline Output
-		Download_prefix(1 ,Newpath+"\\", Chapterurl)
+
+		if threadcount == Maxthread:
+			threadready.wait()
+
+		Newthread = threading.Thread(target=Download_prefix, args= (1 ,Newpath+"\\", Chapterurl))
+		Newthread.start()
+		threadready.clear()	
 	else:
 		print("Url not reachable: " + url)
 
@@ -129,7 +159,9 @@ if __name__ == "__main__":
 
 		if not args.Tag:
 			Download_all_Hentai_Chapter(args.destination, args.Url)
+			Wait_for_threads()
 		if not args.Manga:
 			Download_Hentai_Chapter(args.destination, args.Url)
+			Wait_for_threads()
 	else:
 		print("Usage: use -m or -t")
