@@ -4,21 +4,17 @@ import os
 import argparse
 from lxml import html
 
-
 def Download_Single_File(path, url):
 	response = requests.get(url, stream=True)
-	with open(path, 'wb') as out_file:
-		shutil.copyfileobj(response.raw, out_file)
-	del response
-
-def Site_Exists(url):
-	request = requests.get(url)
-	if request.status_code == 200:
+	if response.status_code == 200:
+		with open(path, 'wb') as out_file:
+			shutil.copyfileobj(response.raw, out_file)
+		del response
 		return 1
-	else:	
+	else:
 		return 0
 
-def Download_Iterative_prefix(Init, path ,url):
+def Download_prefix(Init, path ,url):
 	Index = Init
 	Prefixe = [".png",".jpg"]
 
@@ -27,26 +23,21 @@ def Download_Iterative_prefix(Init, path ,url):
 		print(url+str(Index)) #Commandline Output
 
 		for Prefix in Prefixe:
-			Newpathpre = path+str(Index)+Prefix
-			NewUrlpre = url+str(Index)+Prefix
+			ip = str(Index)+Prefix
+			Newpathpre = path+ip
 
 			if os.path.isfile(Newpathpre):
 				Exist = True
 				break
-
-			if Site_Exists(NewUrlpre):
-				Exist = True
-				Download_Single_File(Newpathpre, NewUrlpre)
-				break
-		
+			else:
+				if Download_Single_File(Newpathpre, url+ip):
+					Exist = True
+					break
 		if not Exist:
 			break
-		
 		Index += 1
 
-def Extract_Hentai_Index(url):
-	response = requests.get(url, stream=True)
-	tree = html.fromstring(response.content)
+def Extract_Hentai_Index(tree):
 	raw_html = tree.xpath('//*[@id="thumbnail-container"]/div[1]/a/img')
 	coreurl = raw_html[0].get('data-src')
 	Chapterurl = coreurl.split("/")[-2]
@@ -54,28 +45,30 @@ def Extract_Hentai_Index(url):
 	print("Gall: ", Chapterurlcomplete) #Commandline Output
 	return Chapterurlcomplete
 
-def Get_Hentai_name(url):
+def Get_Hentai_name(tree):
 	Special = "/","\\",":","*","?","\"","<",">","|",".",";"
-	response = requests.get(url, stream=True)
-	tree = html.fromstring(response.content)
 	raw_html = tree.xpath('//*[@id="info"]/h1/text()')
 	Name = raw_html[0]
-
 	for i in range(len(Special)):
 		Name = Name.replace(Special[i], "")
 
 	return Name
 
 def Download_Hentai_Chapter(path, url):
-	Name = Get_Hentai_name(url)
-	print("Url: ", url)     #Commandline Output
-	Chapterurl = Extract_Hentai_Index(url)
-	Newpath = path+"\\"+Name
-	if not os.path.exists(Newpath):
-   		os.makedirs(Newpath)
-	print("Name: ", Name)    #Commandline Output
-	print("Path: ", Newpath) #Commandline Output
-	Download_Iterative_prefix(1 ,Newpath+"\\", Chapterurl)
+	response = requests.get(url, stream=True)
+	if response.status_code == 200:
+		tree = html.fromstring(response.content)
+		Name = Get_Hentai_name(tree)
+		Chapterurl = Extract_Hentai_Index(tree)
+		print("Url: ", url)     #Commandline Output
+		Newpath = path+"\\"+Name
+		if not os.path.exists(Newpath):
+	   		os.makedirs(Newpath)
+		print("Name: ", Name)    #Commandline Output
+		print("Path: ", Newpath) #Commandline Output
+		Download_prefix(1 ,Newpath+"\\", Chapterurl)
+	else:
+		print("Url not reachable: " + url)
 
 def Get_Hentai_Chapter_list(url):
 	Urllist = []
@@ -88,8 +81,8 @@ def Get_Hentai_Chapter_list(url):
 		else:
 			Site_url = url+'/?page='+str(Index)
 
-		if Site_Exists(Site_url):
-			response = requests.get(Site_url, stream=True)
+		response = requests.get(Site_url, stream=True)
+		if response.status_code == 200:
 			tree = html.fromstring(response.content)
 
 			try:
@@ -118,7 +111,6 @@ def Download_all_Hentai_Chapter(path, url):
 
 	for Urlentry in Urllist:
 		Download_Hentai_Chapter(path, Urlentry)
-
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description='nhentai Downloader')
